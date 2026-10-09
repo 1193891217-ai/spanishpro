@@ -31,15 +31,16 @@ button{font:inherit;cursor:pointer;touch-action:manipulation;
 /* ── 顶栏 ── */
 .topbar{position:sticky;top:0;z-index:20;
   background:repeating-linear-gradient(90deg,var(--walnut) 0 24px,var(--walnut-dark) 24px 27px);
-  border-bottom:3px solid var(--ink);padding:10px clamp(12px,3.5vw,28px);
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.lang-picker{display:flex;align-items:center;gap:5px;flex:none;color:var(--cream);font-family:var(--px-font);font-size:8px}
+  border-bottom:3px solid var(--ink);padding:7px clamp(10px,3.5vw,28px);
+  display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+.lang-picker{display:flex;align-items:center;gap:4px;flex:none;color:var(--cream);font-family:var(--px-font);font-size:8px}
 .pixel-flag-wrap{width:26px;height:18px;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .pixel-flag{display:block;width:24px;height:16px;image-rendering:pixelated;shape-rendering:crispEdges;border:1px solid var(--ink);box-shadow:1px 1px 0 var(--ink)}
 .lang-picker select{appearance:none;-webkit-appearance:none;max-width:145px;background:var(--paper);color:var(--ink);border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);padding:7px 19px 7px 8px;font:700 9px var(--body-font);background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%);background-position:calc(100% - 9px) 50%,calc(100% - 5px) 50%;background-size:4px 4px;background-repeat:no-repeat}
 .topbar h1{font-family:var(--px-font);font-weight:700;color:var(--cream);
   font-size:clamp(17px,4.6vw,26px);line-height:1.1;margin:0 auto;text-rendering:geometricPrecision}
-.tbstats{font-family:var(--px-font);font-size:9px;color:var(--paper-deep);line-height:1.6;white-space:nowrap}
+.tbstats{display:flex;align-items:center;gap:8px;font-family:var(--px-font);font-size:8px;color:var(--paper-deep);line-height:1.15;white-space:nowrap;flex:none}
+.tbstats br{display:none}
 
 /* ── 按钮 ── */
 .btn{appearance:none;background:var(--amber);color:var(--ink);
@@ -53,7 +54,7 @@ button{font:inherit;cursor:pointer;touch-action:manipulation;
 .btn-brick{background:var(--brick);color:var(--cream)}
 
 /* ── chips ── */
-.levelrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:16px}
+.levelrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:8px}
 .levelrow .chip{padding:9px 6px;text-align:center;min-width:0}
 @media (max-width:480px){.levelrow .chip{font-size:9px;padding:9px 4px}.levelrow .chip .n{font-size:8px}}
 .chip{background:transparent;color:var(--paper-deep);font-family:var(--px-font);
@@ -145,6 +146,11 @@ button{font:inherit;cursor:pointer;touch-action:manipulation;
 
 /* 记录/错题/收款 */
 .record{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.page-title{font-family:var(--px-zh);font-weight:700;font-size:clamp(24px,6vw,38px);line-height:1.1;margin:10px 0 7px;text-rendering:geometricPrecision}
+.page-spark{display:inline-flex;vertical-align:top;margin:2px 0 0 5px;color:var(--amber);filter:drop-shadow(2px 2px 0 var(--ink));animation:sparkle 1.8s steps(2,end) infinite alternate}
+.page-spark svg{display:block;width:16px;height:16px;shape-rendering:crispEdges}
+@keyframes sparkle{from{transform:translateY(1px) scale(.9)}to{transform:translateY(-2px) scale(1.05)}}
+.record{margin-top:12px}
 .rcell{background:var(--paper);color:var(--ink);border:2px solid var(--ink);
   box-shadow:2px 2px 0 var(--ink);padding:9px 12px;font-family:var(--px-font);
   font-size:9px;font-weight:700;text-transform:uppercase;flex:1 1 110px;text-align:center}
@@ -189,7 +195,7 @@ footer{padding:18px clamp(12px,3.5vw,28px)}
 .notepage h2{font-family:var(--px-font);font-size:14px;text-transform:uppercase;margin-bottom:8px}
 .mist-row{padding:0 0 7px 0;margin:0;font-size:14px;line-height:26px;display:flex;gap:8px}
 /* 错题本与书包按钮并排；书包像素图缩至按钮内 */
-.practice-tools{display:flex;align-items:center;gap:10px;margin-top:16px}
+.practice-tools{display:flex;align-items:center;gap:10px;margin-top:10px}
 .practice-tools #btn-openmist{margin-top:0;flex:1;min-height:42px}
 .bagart{display:inline-flex;align-items:center;justify-content:center;gap:8px;
   min-height:42px;padding:7px 12px;background:var(--brick);color:var(--cream);
@@ -201,7 +207,7 @@ footer{padding:18px clamp(12px,3.5vw,28px)}
 .bagart i{display:block;position:relative;width:24px;height:27px;flex:none}
 .bagart span{position:static;font-family:var(--px-font);font-size:9px;font-weight:700;color:inherit}
 @media (max-width:420px){.practice-tools{gap:8px}.practice-tools #btn-openmist{padding-inline:8px;font-size:9px}.bagart{padding-inline:8px;gap:5px}}
-.auth-nav{white-space:nowrap;padding:8px 9px;font-size:9px}
+.auth-nav{white-space:nowrap;padding:7px 8px;font-size:8px}
 .baggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 .bagcard{background:var(--paper);color:var(--ink);border:2px solid var(--ink);
   box-shadow:3px 3px 0 var(--ink);padding:12px 10px;text-align:center}
@@ -211,8 +217,17 @@ footer{padding:18px clamp(12px,3.5vw,28px)}
   font-family:var(--px-font);font-size:8px;font-weight:700;padding:4px 8px}
 .bagcard .del:hover{background:color-mix(in oklch,var(--brick) 88%,var(--ink))}
 @media (max-width:480px){
-  .tbstats{order:5;width:100%;text-align:center}
+  .topbar{gap:5px;padding:6px 8px}
+  .lang-picker>span:first-child{display:none}
+  .pixel-flag-wrap{width:23px;height:17px}
+  .pixel-flag{width:22px;height:15px}
+  .lang-picker select{width:76px;max-width:76px;padding:5px 13px 5px 5px;font-size:8px}
+  #brand-label{font-size:9px!important;margin-right:0!important}
+  .tbstats{gap:5px;font-size:7px}
+  .auth-nav{padding:6px 6px;font-size:8px}
+  .modetoggle{margin-top:7px}
 }
+@media (max-width:360px){#brand-label{display:none}}
 </style>
 </head>
 <body>
@@ -227,7 +242,7 @@ footer{padding:18px clamp(12px,3.5vw,28px)}
       <option value="ja">日本語</option>
     </select>
   </label>
-  <div id="brand-label" style="font-family:var(--px-font);font-size:11px;font-weight:700;color:var(--amber);margin-right:auto;text-transform:uppercase">ESPAÑOL</div>
+  <div id="brand-label" style="font-family:var(--px-font);font-size:11px;font-weight:700;color:var(--amber);margin-right:0;text-transform:uppercase">ESPAÑOL</div>
   <div class="tbstats">
     <span id="s-streak">连对 0</span><br>
     <span id="s-quota">今日 0/100</span>
@@ -243,8 +258,7 @@ footer{padding:18px clamp(12px,3.5vw,28px)}
     <button data-mode="type" aria-pressed="false">键盘模式</button>
   </div>
 
-  <h1 style="font-family:var(--px-zh);font-weight:700;font-size:clamp(24px,6vw,38px);
-    line-height:1.1;margin-top:18px;text-rendering:geometricPrecision">单词机</h1>
+  <h1 class="page-title">单词机<span class="page-spark" aria-hidden="true"><svg viewBox="0 0 8 8"><rect x="3" y="0" width="2" height="8"/><rect x="0" y="3" width="8" height="2"/><rect x="2" y="2" width="4" height="4"/></svg></span></h1>
 
   <div class="wood">
     <div class="screen">
@@ -622,7 +636,7 @@ function renderStats(){
   var e;
   (e=safe("s-acc"))&&(e.textContent="正确率 "+acc);
   (e=safe("s-streak"))&&(e.textContent="连对 "+(store.streak||0));
-  (e=safe("s-quota"))&&(e.textContent=(proActive?"Pro · 到 "+new Date(AUTH.expiresAt).toLocaleDateString("zh-CN"):"今日 "+quotaNow()+"/"+DAILY_LIMIT));
+  (e=safe("s-quota"))&&(e.textContent=(proActive?(Number(AUTH.expiresAt)>=Date.UTC(2099,0,1)?"PRO · 永远!!!":"PRO · 到 "+new Date(AUTH.expiresAt).toLocaleDateString("zh-CN")):"今日 "+quotaNow()+"/"+DAILY_LIMIT));
   var payTag=safe("pay-tag"),payMessage=safe("pay-message"),payButton=safe("btn-pro");
   if(proActive){
     payTag&&(payTag.hidden=true);
