@@ -19,7 +19,10 @@ function sign(params) {
 }
 function validSign(params) {
   try {
-    const supplied = Buffer.from(String(params.sign || '').toLowerCase(), 'hex');
+    const signature = String(params.sign || '');
+    // Buffer.from(hex) silently ignores malformed trailing characters; reject any non-hex or wrong-length value first.
+    if (!/^[0-9a-f]{32}$/i.test(signature)) return false;
+    const supplied = Buffer.from(signature.toLowerCase(), 'hex');
     const expected = Buffer.from(sign(params), 'hex');
     return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
   } catch (_) { return false; }
