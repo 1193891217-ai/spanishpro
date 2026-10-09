@@ -657,7 +657,7 @@ async function authSubmit(register){
   try{
     if(!AUTH.config)throw new Error("账户服务尚未配置");
     var email=safe("auth-email").value.trim(),password=safe("auth-password").value;
-    var path=register?"/auth/v1/signup":"/auth/v1/token?grant_type=password";
+    var path=register?"/auth/v1/signup?redirect_to="+encodeURIComponent(location.origin):"/auth/v1/token?grant_type=password";
     var r=await fetch(AUTH.config.supabaseUrl.replace(/\/$/,"")+path,{method:"POST",headers:{"Content-Type":"application/json",apikey:AUTH.config.publishableKey},body:JSON.stringify({email:email,password:password})});
     var d=await r.json();
     if(!r.ok)throw new Error(d.msg||d.message||d.error_description||d.error||"登录失败，请检查邮箱和密码");
