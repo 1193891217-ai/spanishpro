@@ -223,3 +223,15 @@ OpenJLPT 提供社区整理的 JLPT 级别词条；Tomoshi 数据中包含 JMdic
 https://creativecommons.org/licenses/by-sa/4.0/
 
 再分发或改编时，请注明 OpenJLPT、Tomoshi/JMdict 来源、许可链接及所作修改，并以相同许可发布日语词库改编内容。
+
+
+西语词汇补充（Wordhoard CC BY-SA 4.0；Wikidata CC0）
+
+来源：
+- wordhoard, Spanish frequency/POS/CEFR estimate data: https://github.com/natema/wordhoard （revision 1bc5730e8d6e682c416c03680b7cb8c6c7ca8cd0；数据采用 CC BY-SA 4.0）
+- wikidict-dsl-zh, Spanish-Chinese interwiki dictionary: https://github.com/open-dsl-dict/wikidict-dsl-zh （revision e43e5452eed16f7273e3c14da5bb9cc3ea6babab；来源为 Wikidata 结构化数据，CC0）
+
+本项目筛选 Wordhoard 中常见的西语名词、动词、形容词和副词，与西中词条对应合并，转换为简体中文并按估算 CEFR 级别整理。词频等级仅作学习参考，尤其新增 C1/C2 不是官方 DELE 词表；中文词条对应为参考译名。Wordhoard 数据改编部分按 CC BY-SA 4.0 提供。
+
+CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/
+Wikidata CC0: https://creativecommons.org/publicdomain/zero/1.0/
