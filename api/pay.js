@@ -31,6 +31,11 @@ async function saveOrder(id, obj) {
   await redis(['SET', 'order:' + id, JSON.stringify(obj)]);
 }
 
+function baseUrl(req) {
+  if (process.env.BACKEND_URL) return process.env.BACKEND_URL.replace(/\/$/, '');
+  return 'https://' + (req.headers['x-forwarded-host'] || req.headers.host);
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', process.env.ALLOW_ORIGIN || '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -48,20 +53,28 @@ module.exports = async function handler(req, res) {
       amount: PRICE_FEN,
       orderNo,
       goodsName: '单词小助手-永久解锁',
-      notifyUrl: process.env.BACKEND_URL + '/api/pay?action=notify',
+      notifyUrl: baseUrl(req) + '/api/pay?action=notify',
     };
     params.sign = sign(params);
     await saveOrder(orderNo, { status: 'pending', amount: PRICE_FEN });
 
-    const r = await fetch(process.env.JIANPAY_GATEWAY + '/open/payment/pay/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...params, sign_type: 'MD5' }),
-    });
-    const d = await r.json();
-    if (d.code !== 1000 || !d.data || !d.data.payQrcodeUrl)
-      return res.status(502).json({ ok: false, msg: d.message || '下单失败' });
-    return res.json({ ok: true, orderNo, payQrcodeUrl: d.data.payQrcodeUrl });
+    try {
+      const r = await fetch(process.env.JIANPAY_GATEWAY + '/open/payment/pay/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...params, sign_type: 'MD5' }),
+      });
+      const text = await r.text();
+      console.log('CREATE_RESP', r.status, text.slice(0, 500));   // 排查用：在 Vercel Logs 里查看
+      let d = {};
+      try { d = JSON.parse(text); } catch (e) {}
+      if (d.code !== 1000 || !d.data || !d.data.payQrcodeUrl)
+        return res.status(502).json({ ok: false, msg: d.message || ('下单失败：' + r.status) });
+      return res.json({ ok: true, orderNo, payQrcodeUrl: d.data.payQrcodeUrl });
+    } catch (e) {
+      console.log('CREATE_ERR', e.message);
+      return res.status(500).json({ ok: false, msg: '服务器错误：' + e.message });
+    }
   }
 
   // 2. 简付付款成功后回调到这里
