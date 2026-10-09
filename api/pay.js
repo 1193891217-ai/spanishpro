@@ -5,6 +5,7 @@ const { cors, redis, getUser, getLicense, sendError } = require('../lib/server')
 
 const PRICE_FEN = 3900;            // 39 元
 const FOREVER = 4102444800000;     // 永久
+const CREATE_LIMIT_SCRIPT = "local n=redis.call('INCR',KEYS[1]); if n==1 then redis.call('EXPIRE',KEYS[1],tonumber(ARGV[1])) end; return n";
 
 function sign(params) {
   if (!process.env.JIANPAY_KEY) throw new Error('Payment signing key is not configured');
@@ -75,8 +76,7 @@ module.exports = async function handler(req, res) {
     const user = await getUser(req);
     if (!user) return sendError(res, 401, 'Please sign in before payment');
     const hourKey = 'pay-create:' + user.id + ':' + Math.floor(Date.now() / 3600000);
-    const creates = Number(await redis(['INCR', hourKey]));
-    if (creates === 1) await redis(['EXPIRE', hourKey, '7200']);
+    const creates = Number(await redis(['EVAL', CREATE_LIMIT_SCRIPT, '1', hourKey, '7200']));
     if (creates > 10) return sendError(res, 429, 'Too many payment orders. Try again later.');
     // 不可预测的商户订单号，防止他人猜测订单号调用 status 伪造解锁。
     const orderNo = 'P' + crypto.randomBytes(24).toString('hex');
