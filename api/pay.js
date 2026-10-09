@@ -1,11 +1,13 @@
 // 支付后端：下单、收付款通知、主动查询订单状态（一个文件）
 const crypto = require('crypto');
 const querystring = require('querystring');
+const { cors, redis, getUser, getLicense, sendError } = require('../lib/server');
 
 const PRICE_FEN = 3900;            // 39 元
 const FOREVER = 4102444800000;     // 永久
 
 function sign(params) {
+  if (!process.env.JIANPAY_KEY) throw new Error('Payment signing key is not configured');
   const str = Object.keys(params)
     .filter(k => k !== 'sign' && k !== 'sign_type')
     .filter(k => params[k] !== undefined && params[k] !== null && params[k] !== '')
@@ -14,20 +16,19 @@ function sign(params) {
     .join('&');
   return crypto.createHash('md5').update(str + process.env.JIANPAY_KEY, 'utf8').digest('hex');
 }
+function validSign(params) {
+  try {
+    const supplied = Buffer.from(String(params.sign || '').toLowerCase(), 'hex');
+    const expected = Buffer.from(sign(params), 'hex');
+    return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
+  } catch (_) { return false; }
+}
 
 function baseUrl(req) {
   if (process.env.BACKEND_URL) return process.env.BACKEND_URL.replace(/\/$/, '');
   return 'https://' + (req.headers['x-forwarded-host'] || req.headers.host);
 }
 
-async function redis(args) {
-  const r = await fetch(process.env.UPSTASH_REDIS_REST_URL, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + process.env.UPSTASH_REDIS_REST_TOKEN, 'Content-Type': 'application/json' },
-    body: JSON.stringify(args),
-  });
-  return (await r.json()).result;
-}
 async function getOrder(id) {
   const s = await redis(['GET', 'order:' + id]);
   return s ? JSON.parse(s) : null;
@@ -64,15 +65,19 @@ async function queryGateway(order) {
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', process.env.ALLOW_ORIGIN || '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  cors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   const action = req.query.action;
 
   // 1. 下单，返回二维码
   if (action === 'create' && req.method === 'POST') {
+    const user = await getUser(req);
+    if (!user) return sendError(res, 401, 'Please sign in before payment');
+    const hourKey = 'pay-create:' + user.id + ':' + Math.floor(Date.now() / 3600000);
+    const creates = Number(await redis(['INCR', hourKey]));
+    if (creates === 1) await redis(['EXPIRE', hourKey, '7200']);
+    if (creates > 10) return sendError(res, 429, 'Too many payment orders. Try again later.');
     // 不可预测的商户订单号，防止他人猜测订单号调用 status 伪造解锁。
     const orderNo = 'P' + crypto.randomBytes(24).toString('hex');
     const params = {
@@ -95,12 +100,14 @@ module.exports = async function handler(req, res) {
       console.log('CREATE_RESP', r.status, text.slice(0, 500));
       let d = {};
       try { d = JSON.parse(text); } catch (e) {}
-      if (d.code !== 1000 || !d.data || !d.data.payQrcodeUrl)
+      if (d.code !== 1000 || !d.data || !d.data.payQrcodeUrl || !d.data.orderId ||
+          String(d.data.clientNo) !== String(process.env.JIANPAY_CLIENT_NO) ||
+          String(d.data.merchantOrderNo) !== orderNo || String(d.data.amount) !== String(PRICE_FEN))
         return res.status(502).json({ ok: false, msg: d.message || ('下单失败：' + r.status) });
 
       // 保存简付的平台订单号，之后用它查询
       await saveOrder(orderNo, {
-        status: 'pending', orderNo, amount: PRICE_FEN, platformOrderId: d.data.orderId || null, createdAt: Date.now(),
+        status: 'pending', orderNo, ownerId: user.id, amount: PRICE_FEN, platformOrderId: d.data.orderId || null, createdAt: Date.now(),
       });
       return res.json({ ok: true, orderNo, payQrcodeUrl: d.data.payQrcodeUrl });
     } catch (e) {
@@ -111,9 +118,9 @@ module.exports = async function handler(req, res) {
 
   // 2. 简付的付款通知（如果能收到的话）
   if (action === 'notify') {
+    if (req.method !== 'POST') return res.status(405).send('fail');
     const p = typeof req.body === 'string' ? querystring.parse(req.body) : (req.body || {});
-    console.log('NOTIFY', JSON.stringify(p));
-    if (String(p.sign || '').toLowerCase() !== sign(p)) return res.status(400).send('fail');
+    if (!validSign(p)) return res.status(400).send('fail');
     // 简付通知字段为 merchantOrderNo，兼容旧通知字段 orderNo。
     const orderNo = String(p.merchantOrderNo || p.orderNo || '');
     const order = await getOrder(orderNo);
@@ -126,19 +133,26 @@ module.exports = async function handler(req, res) {
     // 简付成功状态为数值 2；其他状态不能授予权益。
     const ok = Number(p.status) === 2;
     if (!ok) return res.send('ignored');
+    if (!order.ownerId) return res.status(400).send('fail');
+    await redis(['SET', 'license:' + order.ownerId, JSON.stringify({ expiresAt: FOREVER, orderNo, paidAt: Date.now() })]);
     await saveOrder(orderNo, { ...order, status: 'paid', paidAt: Date.now() });
     return res.send('success');
   }
 
   // 3. 网页轮询：先看本地记录，没付则主动问简付
   if (action === 'status') {
+    if (req.method !== 'GET') return sendError(res, 405, 'Method not allowed');
+    const user = await getUser(req);
+    if (!user) return sendError(res, 401, 'Please sign in');
     const orderNo = String(req.query.orderId || '');
+    if (!/^P[0-9a-f]{48}$/.test(orderNo)) return res.status(404).json({ paid: false, expiresAt: null });
     let order = await getOrder(orderNo);
-    if (!order) return res.json({ paid: false, expiresAt: null });
+    if (!order || order.ownerId !== user.id) return res.status(404).json({ paid: false, expiresAt: null });
     if (order.status !== 'paid' && order.platformOrderId) {
       try {
         if (await queryGateway(order)) {
           order = { ...order, status: 'paid', paidAt: Date.now() };
+          await redis(['SET', 'license:' + user.id, JSON.stringify({ expiresAt: FOREVER, orderNo, paidAt: order.paidAt })]);
           await saveOrder(orderNo, order);
         }
       } catch (e) {
@@ -146,7 +160,8 @@ module.exports = async function handler(req, res) {
       }
     }
     const paid = order.status === 'paid';
-    return res.json({ paid, expiresAt: paid ? FOREVER : null });
+    const license = await getLicense(user.id);
+    return res.json({ paid, expiresAt: paid ? license.expiresAt : null });
   }
 
   res.status(404).json({ ok: false });
