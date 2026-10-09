@@ -54,8 +54,10 @@ async function queryGateway(order) {
   let d = {};
   try { d = JSON.parse(text); } catch (e) {}
   const data = d.data || {};
-  // 【待确认】成功的状态值：目前按 1 / success 判断，看日志后可调整
-  const paid = ['1', 1, 'success', 'SUCCESS'].includes(data.status);
+  // 暂时关闭主动查询解锁：之前猜的成功值不对，会在未付款时误判。
+  // 拿到 QUERY_RESP 日志、确认"已付款"的真实值后，再把它填进 PAID_STATUS。
+  const PAID_STATUS = [];
+  const paid = PAID_STATUS.length > 0 && PAID_STATUS.includes(data.status);
   // 金额必须与下单一致
   const amountOk = data.amount == null || String(data.amount) === String(order.amount);
   return paid && amountOk;
