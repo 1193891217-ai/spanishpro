@@ -1015,6 +1015,7 @@ var BAG_MAIN=[[2,0],[5,0],[0,2],[1,2],[2,2],[3,2],[4,2],[5,2],[6,2],[7,2],
   var b=safe("bag-px");if(!b||typeof pxShadow!=="function")return;
   b.style.position="relative";b.style.display="block";b.style.width="24px";b.style.height="27px";
   var d=document.createElement("i");
+  d.style.position="absolute";d.style.left="0";d.style.top="0";d.style.width=d.style.height="3px";
   d.style.boxShadow=
     pxShadow(BAG_MAIN,3,"#8a5a32")+","+
     pxShadow([[0,2],[7,2],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[1,4],[2,4],[5,4],[6,4]],3,"#6b4226")+","+
