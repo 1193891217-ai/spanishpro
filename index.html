@@ -184,19 +184,20 @@ footer{padding:18px clamp(12px,3.5vw,28px)}
   background-image:repeating-linear-gradient(180deg,transparent 0 26px,color-mix(in oklch,var(--olive) 35%,var(--paper)) 26px 27px)}
 .notepage h2{font-family:var(--px-font);font-size:14px;text-transform:uppercase;margin-bottom:8px}
 .mist-row{padding:0 0 7px 0;margin:0;font-size:14px;line-height:26px;display:flex;gap:8px}
-/* 书包大图 + 卡片网格 */
-.bagwrap{position:fixed;z-index:6;left:8px;top:46%;margin:0}
-.bagart{position:relative;display:block;border:0;background:transparent;padding:0;
-  font-style:normal;line-height:1}
-.bagart i{position:absolute;display:block;width:6px;height:6px}
-.bagart .baglabel{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);
-  font-family:var(--px-font);font-size:9px;font-weight:700;color:var(--paper-deep);white-space:nowrap}
-@media (max-width:640px){.bagwrap{left:2px;top:42%}
-  .bagart i{width:5px;height:5px}}
-.bagart:hover{transform:translate(-2px,-2px)}
+/* 错题本与书包按钮并排；书包像素图缩至按钮内 */
+.practice-tools{display:flex;align-items:center;gap:10px;margin-top:16px}
+.practice-tools #btn-openmist{margin-top:0;flex:1;min-height:42px}
+.bagart{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:42px;padding:7px 12px;background:var(--brick);color:var(--cream);
+  border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);
+  font-family:var(--px-font);font-size:9px;font-weight:700;white-space:nowrap}
+.bagart:hover{background:color-mix(in oklch,var(--brick) 88%,var(--ink))}
+.bagart:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
 .bagart:focus-visible{outline:2px solid var(--amber);outline-offset:4px}
-.bagart span{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);
-  font-family:var(--px-font);font-size:9px;font-weight:700;color:var(--paper-deep);white-space:nowrap}
+.bagart i{display:block;position:relative;width:24px;height:27px;flex:none}
+.bagart span{position:static;font-family:var(--px-font);font-size:9px;font-weight:700;color:inherit}
+@media (max-width:420px){.practice-tools{gap:8px}.practice-tools #btn-openmist{padding-inline:8px;font-size:9px}.bagart{padding-inline:8px;gap:5px}}
+.auth-nav{white-space:nowrap;padding:8px 9px;font-size:9px}
 .baggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 .bagcard{background:var(--paper);color:var(--ink);border:2px solid var(--ink);
   box-shadow:3px 3px 0 var(--ink);padding:12px 10px;text-align:center}
@@ -219,15 +220,10 @@ footer{padding:18px clamp(12px,3.5vw,28px)}
     <span id="s-streak">连对 0</span><br>
     <span id="s-quota">今日 0/100</span>
   </div>
+  <button class="btn btn-dark auth-nav" id="btn-account" type="button">登录 / 注册</button>
 </header>
 
 <main class="container" style="padding-bottom:32px">
-
-  <div class="bagwrap">
-    <button class="bagart" id="btn-bag" aria-label="打开书包">
-      <i id="bag-px" aria-hidden="true"></i><span class="baglabel" id="bag-n">书包 (0)</span>
-    </button>
-  </div>
 
   <div class="levelrow" id="levels" role="group" aria-label="选择级别"></div>
   <div class="modetoggle" id="modes" role="group" aria-label="输入模式">
@@ -263,7 +259,12 @@ footer{padding:18px clamp(12px,3.5vw,28px)}
     <div class="rcell"><b id="r-total">0</b>累计练习</div>
   </section>
 
-  <button class="btn btn-brick" id="btn-openmist" style="margin-top:16px">打开错题本 (0)</button>
+  <div class="practice-tools">
+    <button class="btn btn-brick" id="btn-openmist">打开错题本 (0)</button>
+    <button class="bagart" id="btn-bag" aria-label="打开书包">
+      <i id="bag-px" aria-hidden="true"></i><span id="bag-n">书包 (0)</span>
+    </button>
+  </div>
 
   <section class="overlay hidden" id="mist-ov" aria-label="错题本">
     <div class="notebook" role="dialog" style="max-width:480px;width:100%">
@@ -302,7 +303,7 @@ footer{padding:18px clamp(12px,3.5vw,28px)}
   </section>
 </main>
 
-<footer><span class="meta" style="opacity:.6;font-family:var(--px-font);font-size:9px">Ortografía Español · 词库经 WORDS 导入</span><span id="account-label" style="font-size:11px;margin-left:10px"></span><button class="btn btn-dark" id="btn-logout" hidden style="margin-left:8px;padding:5px 8px;font-size:11px">退出登录</button></footer>
+<footer><span class="meta" style="opacity:.6;font-family:var(--px-font);font-size:9px">Ortografía Español · 词库经 WORDS 导入</span><span id="account-label" style="font-size:11px;margin-left:10px"></span></footer>
 
 <script>
 'use strict';
@@ -326,7 +327,7 @@ var dayKey=(function(){ /* 北京时间当日，凌晨 0-6 点仍算前一天 �
   var d=new Date(Date.now()+2*3600000);
   return d.getUTCFullYear()+"-"+(d.getUTCMonth()+1)+"-"+d.getUTCDate();})();
 var store=loadStore();
-var AUTH={config:null,accessToken:"",refreshToken:"",userId:"",email:"",count:0,expiresAt:0,ready:false,loading:false};
+var AUTH={config:null,configLoading:true,accessToken:"",refreshToken:"",userId:"",email:"",count:0,expiresAt:0,ready:false,loading:false};
 function $(id){return document.getElementById(id)}
 function safe(id){var e=$(id);return e||null}
 
@@ -344,10 +345,12 @@ function quotaNow(){return AUTH.count||0}
 function quotaInc(){
   return apiFetch(PRO_CONFIG.api+"/api/usage",{method:"POST"})
     .then(function(r){if(!r.ok)throw new Error("无法保存答题次数");return r.json()})
-    .then(function(d){AUTH.count=Number(d.count)||0;AUTH.expiresAt=Number(d.expiresAt)||0;renderStats();return d})
+    .then(function(d){AUTH.count=Number(d.count)||0;AUTH.expiresAt=Number(d.expiresAt)||0;renderStats();
+      if(!isPro()&&AUTH.count>=DAILY_LIMIT)setTimeout(function(){if(!isPro()&&!safe("pay-ov"))proModal()},450);
+      return d})
     .catch(function(e){AUTH.ready=false;showAuthGate("网络暂时不可用，答题次数未能同步。请登录后重试。");return null});}
 function tryAttempt(){
-  if(!AUTH.ready){showAuthGate("请登录后开始练习");return false}
+  if(!AUTH.ready){showAuthGate("开始答题前请登录或创建账号");return false}
   if(!isPro()&&quotaNow()>=DAILY_LIMIT){if(!document.querySelector(".modal"))proModal();return false}
   return true}
 
@@ -639,23 +642,25 @@ function authStorage(){try{return JSON.parse(localStorage.getItem("es-auth-v1")|
 function saveAuth(){try{localStorage.setItem("es-auth-v1",JSON.stringify({accessToken:AUTH.accessToken,refreshToken:AUTH.refreshToken}))}catch(e){}}
 function clearAuth(){AUTH.accessToken="";AUTH.refreshToken="";AUTH.userId="";AUTH.email="";AUTH.count=0;AUTH.expiresAt=0;AUTH.ready=false;try{localStorage.removeItem("es-auth-v1")}catch(e){}}
 function showAccountLabel(){
-  var el=safe("account-label"),out=safe("btn-logout");
+  var el=safe("account-label"),out=safe("btn-logout"),account=safe("btn-account");
   if(el)el.textContent=AUTH.ready?"已登录："+AUTH.email:"";
   if(out)out.hidden=!AUTH.ready;
+  if(account)account.textContent=AUTH.ready?"退出登录":"登录 / 注册";
 }
 function showAuthGate(message){
   var old=safe("auth-ov");if(old){var m=safe("auth-message");if(m)m.textContent=message||"";return}
   var ov=document.createElement("div");ov.className="overlay";ov.id="auth-ov";ov.style.zIndex="9999";
-  ov.innerHTML='<div class="notebook" role="dialog" aria-modal="true" style="max-width:380px;width:100%"><div class="rings" aria-hidden="true"></div><div class="notepage"><h2>登录 / 注册</h2><p style="font-size:13px">登录后同步每日练习次数和永久解锁权益。</p><form id="auth-form"><label style="display:block;margin:10px 0 4px">邮箱</label><input id="auth-email" type="email" autocomplete="email" required style="width:100%;padding:10px"><label style="display:block;margin:10px 0 4px">密码</label><input id="auth-password" type="password" autocomplete="current-password" minlength="8" required style="width:100%;padding:10px"><button class="btn" id="auth-submit" type="submit" style="margin-top:12px">登录</button><button class="btn btn-dark" id="auth-toggle" type="button" style="margin:12px 0 0 8px">创建账号</button></form><p id="auth-message" role="status" style="font-size:13px;min-height:20px"></p></div></div>';
+  ov.innerHTML='<div class="notebook" role="dialog" aria-modal="true" style="max-width:380px;width:100%"><div class="rings" aria-hidden="true"></div><div class="notepage"><h2>登录 / 注册</h2><p style="font-size:13px">登录后同步每日练习次数和永久解锁权益。</p><form id="auth-form"><label style="display:block;margin:10px 0 4px">邮箱</label><input id="auth-email" type="email" autocomplete="email" required style="width:100%;padding:10px"><label style="display:block;margin:10px 0 4px">密码</label><input id="auth-password" type="password" autocomplete="current-password" minlength="8" required style="width:100%;padding:10px"><button class="btn" id="auth-submit" type="submit" style="margin-top:12px">登录</button><button class="btn btn-dark" id="auth-toggle" type="button" style="margin:12px 0 0 8px">创建账号</button></form><p id="auth-message" role="status" style="font-size:13px;min-height:20px"></p><button class="btn btn-dark" id="auth-close" type="button">返回练习</button></div></div>';
   document.body.appendChild(ov);
   var form=safe("auth-form"),toggle=safe("auth-toggle"),submit=safe("auth-submit"),register=false;
   if(toggle)toggle.addEventListener("click",function(){register=!register;submit.textContent=register?"创建账号":"登录";toggle.textContent=register?"返回登录":"创建账号";safe("auth-password").setAttribute("autocomplete",register?"new-password":"current-password")});
+  var close=safe("auth-close");close&&close.addEventListener("click",function(){ov.remove()});
   if(form)form.addEventListener("submit",function(ev){ev.preventDefault();submit.disabled=true;authSubmit(register).finally(function(){submit.disabled=false})});
 }
 function authMessage(s){var m=safe("auth-message");if(m)m.textContent=String(s||"")}
 async function authSubmit(register){
   try{
-    if(!AUTH.config)throw new Error("账户服务尚未配置");
+    if(!AUTH.config){authMessage(AUTH.configLoading?"账户服务正在连接，请稍后再试":"账户服务暂不可用，请稍后重试");return}
     var email=safe("auth-email").value.trim(),password=safe("auth-password").value;
     var path=register?"/auth/v1/signup?redirect_to="+encodeURIComponent(location.origin):"/auth/v1/token?grant_type=password";
     var r=await fetch(AUTH.config.supabaseUrl.replace(/\/$/,"")+path,{method:"POST",headers:{"Content-Type":"application/json",apikey:AUTH.config.publishableKey},body:JSON.stringify({email:email,password:password})});
@@ -689,17 +694,18 @@ async function finishAuthentication(){
   var ov=safe("auth-ov");ov&&ov.remove();showAccountLabel();renderStats();checkPending();
 }
 async function initializeAccount(){
-  showAuthGate("正在连接账户服务…");
+  AUTH.configLoading=true;
   try{
     var cr=await fetch(PRO_CONFIG.api+"/api/config"),cfg=await cr.json();
     if(!cr.ok||!cfg.ok)throw new Error("账户服务尚未配置，请稍后再试");
     AUTH.config={supabaseUrl:cfg.supabaseUrl,publishableKey:cfg.publishableKey};
+    AUTH.configLoading=false;
     var fragment=new URLSearchParams(location.hash.replace(/^#/,""));
     if(fragment.get("access_token")){AUTH.accessToken=fragment.get("access_token");AUTH.refreshToken=fragment.get("refresh_token")||"";saveAuth();history.replaceState(null,"",location.pathname+location.search)}
     if(!AUTH.accessToken){var saved=authStorage();AUTH.accessToken=saved.accessToken||"";AUTH.refreshToken=saved.refreshToken||""}
-    if(!AUTH.accessToken){authMessage("请登录或创建账号。新账号需要先验证邮箱。");return}
+    if(!AUTH.accessToken){showAccountLabel();return}
     try{await finishAuthentication()}catch(e){if(await refreshAuth())await finishAuthentication();else{clearAuth();authMessage("登录状态已过期，请重新登录")}}
-  }catch(e){authMessage(e.message||"无法连接账户服务")}
+  }catch(e){AUTH.configLoading=false;showAccountLabel();var label=safe("account-label");if(label)label.textContent="账户暂时无法连接"}
 }
 function syncPro(){
   if(!AUTH.ready)return;
@@ -707,7 +713,13 @@ function syncPro(){
     .then(function(d){AUTH.count=Number(d.count)||0;AUTH.expiresAt=Number(d.expiresAt)||0;renderStats()})
     .catch(function(){AUTH.ready=false;showAuthGate("账户服务暂时不可用，请重新登录后同步额度")});
 }
-async function logout(){try{if(AUTH.accessToken&&AUTH.config)await fetch(AUTH.config.supabaseUrl.replace(/\/$/,"")+"/auth/v1/logout",{method:"POST",headers:{apikey:AUTH.config.publishableKey,Authorization:"Bearer "+AUTH.accessToken}})}catch(e){}clearAuth();showAccountLabel();showAuthGate("你已退出登录");renderStats()}
+async function logout(){try{if(AUTH.accessToken&&AUTH.config)await fetch(AUTH.config.supabaseUrl.replace(/\/$/,"")+"/auth/v1/logout",{method:"POST",headers:{apikey:AUTH.config.publishableKey,Authorization:"Bearer "+AUTH.accessToken}})}catch(e){}clearAuth();showAccountLabel();renderStats()}
+function showUnlockNotice(){
+  var old=safe("unlock-ov");if(old)old.remove();
+  var ov=document.createElement("section");ov.className="overlay";ov.id="unlock-ov";ov.style.zIndex="1100";
+  ov.innerHTML='<div class="notebook" role="dialog" aria-modal="true" style="max-width:380px;width:100%"><div class="rings" aria-hidden="true"></div><div class="notepage"><h2>已永久解锁</h2><p style="font-size:14px">感谢支持！你的账号已成为永久会员，练习次数不再受限。</p><button class="btn btn-olive" id="unlock-close" type="button">开始练习</button></div></div>';
+  document.body.appendChild(ov);var close=safe("unlock-close");close&&close.addEventListener("click",function(){ov.remove()});
+}
 /* ── 扫码付款：状态都显示在弹窗里（之前的提示条被遮住，看不到错误） ── */
 function payBox(){
   var old=safe("pay-box");if(old)old.remove();
@@ -734,7 +746,7 @@ function payBox(){
         apiFetch(PRO_CONFIG.api+"/api/pay?action=status&orderId="+encodeURIComponent(orderNo))
           .then(function(r){return r.json()})
           .then(function(d){
-            if(d.paid){clearInterval(timer);setPro(d.expiresAt);syncPro();ov.remove();try{localStorage.removeItem("es-pending-"+AUTH.userId)}catch(e){};note("Pro 已解锁","ok")}
+            if(d.paid){clearInterval(timer);setPro(d.expiresAt);syncPro();ov.remove();var upsell=safe("pay-ov");upsell&&upsell.remove();try{localStorage.removeItem("es-pending-"+AUTH.userId)}catch(e){};showUnlockNotice()}
           }).catch(function(){});
       },3000);
     }
@@ -761,7 +773,7 @@ function checkPending(){
   apiFetch(PRO_CONFIG.api+"/api/pay?action=status&orderId="+encodeURIComponent(id))
     .then(function(r){return r.json()})
     .then(function(d){
-      if(d.paid){setPro(d.expiresAt);syncPro();try{localStorage.removeItem("es-pending-"+AUTH.userId)}catch(e){};note("Pro 已解锁","ok")}
+      if(d.paid){setPro(d.expiresAt);syncPro();var upsell=safe("pay-ov");upsell&&upsell.remove();try{localStorage.removeItem("es-pending-"+AUTH.userId)}catch(e){};showUnlockNotice()}
     }).catch(function(){});
 }
 /* ── 记录 / 错题本渲染 ── */
@@ -802,6 +814,7 @@ var spd=safe("btn-speak");spd&&spd.addEventListener("click",function(){if(tryAtt
 var skp=safe("btn-skip");skp&&skp.addEventListener("click",function(){if(tryAttempt())next()});
 var prb=safe("btn-pro");prb&&prb.addEventListener("click",proModal);
 var logoutBtn=safe("btn-logout");logoutBtn&&logoutBtn.addEventListener("click",logout);
+var accountBtn=safe("btn-account");accountBtn&&accountBtn.addEventListener("click",function(){if(AUTH.ready)logout();else showAuthGate("请登录或创建账号")});
 var clm=safe("btn-clearmist");clm&&clm.addEventListener("click",function(){
   try{localStorage.removeItem("es-mist")}catch(e){}
   renderMist();renderStats();});
@@ -1000,19 +1013,19 @@ var BAG_MAIN=[[2,0],[5,0],[0,2],[1,2],[2,2],[3,2],[4,2],[5,2],[6,2],[7,2],
   [0,3],[7,3],[0,4],[7,4],[0,5],[7,5],[0,6],[7,6],[1,7],[2,7],[3,7],[4,7],[5,7],[6,7],[1,8],[6,8]];
 (function drawBag(){
   var b=safe("bag-px");if(!b||typeof pxShadow!=="function")return;
-  b.style.position="relative";b.style.display="block";b.style.width="48px";b.style.height="60px";
+  b.style.position="relative";b.style.display="block";b.style.width="24px";b.style.height="27px";
   var d=document.createElement("i");
   d.style.boxShadow=
-    pxShadow(BAG_MAIN,6,"#8a5a32")+","+
-    pxShadow([[0,2],[7,2],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[1,4],[2,4],[5,4],[6,4]],6,"#6b4226")+","+ /* 翻盖 */
-    pxShadow([[2,5],[3,5],[4,5],[5,5],[2,6],[5,6],[2,7],[3,7],[4,7],[5,7]],6,"#d5902f")+","+              /* 前袋 */
-    pxShadow([[3,4],[4,4]],6,"#e8b95e")+","+                                                                /* 锁扣 */
-    pxShadow([[2,0],[5,0]],6,"#6b4226");                                                                    /* 提手 */
+    pxShadow(BAG_MAIN,3,"#8a5a32")+","+
+    pxShadow([[0,2],[7,2],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[1,4],[2,4],[5,4],[6,4]],3,"#6b4226")+","+
+    pxShadow([[2,5],[3,5],[4,5],[5,5],[2,6],[5,6],[2,7],[3,7],[4,7],[5,7]],3,"#d5902f")+","+
+    pxShadow([[3,4],[4,4]],3,"#e8b95e")+","+
+    pxShadow([[2,0],[5,0]],3,"#6b4226");
   b.appendChild(d);
 })();
 
 /* ── 启动 ── */
-buildDeck();renderMode();renderMist();renderBag();initializeAccount();
+buildDeck();renderMode();renderMist();renderBag();showAccountLabel();initializeAccount();
 </script>
 </body>
 </html>
