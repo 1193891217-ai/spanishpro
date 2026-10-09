@@ -38,6 +38,12 @@ The frontend requires sign-in before practice. Users can sign in again on anothe
 
 After deploying the Vercel API, deploy the updated HTML. Existing local-only counts cannot be imported reliably. Purchases made before account binding may need manual account association; do not rely on old browser-local `proUntil` values as proof of payment.
 
+### Associate a verified legacy purchase
+
+For a purchase made before account sign-in was added, first verify the transaction in the JianPay merchant dashboard and identify the purchaser's Supabase user UUID from the Auth users page. Only then, in the private Upstash console, set `license:<user-uuid>` to a JSON object with `expiresAt` set to `4102444800000`, the verified `orderNo`, and `paidAt` as the current Unix timestamp in milliseconds. Do not expose the Upstash token or create a public endpoint that lets users claim old orders. Ask the purchaser to sign in again to load the entitlement.
+
+The answer checking and vocabulary still run in the browser because this is a static quiz page. This backend secures account identity, stored quota, and payment entitlements; it cannot prevent a technically capable user from modifying their own browser code or viewing public vocabulary. Keep all purchase decisions and account entitlements server-side as implemented here.
+
 ## Existing services
 
 This implementation expects the existing Upstash Redis REST database and JianPay merchant configuration. Confirm all required environment variables are set in Vercel Preview and Production before switching the frontend.
