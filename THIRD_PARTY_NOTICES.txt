@@ -209,3 +209,17 @@ https://github.com/mikigo/english-chinese-words
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+
+日语词库（CC BY-SA 4.0）
+
+来源：
+- OpenJLPT: https://github.com/evanclan/OpenJLPT （来源版本 0d1d3410bec90bd4098a7c72de820543cb4f707c）
+- Tomoshi Japanese Dictionary Open Data: https://github.com/tomoshi-app/tomoshi-dict-data （来源版本 4f1fec127ec6a50fa0892235942e1caa414a882b；数据库快照 2026-09-02）
+
+OpenJLPT 提供社区整理的 JLPT 级别词条；Tomoshi 数据中包含 JMdict 中文释义。本项目筛选并合并两种来源，转换词性与字段格式，并补充少量中文释义。JLPT 等级为社区估算，不是日本国际交流基金会发布的官方词表。
+
+本日语词库及其改编内容按 Creative Commons Attribution-ShareAlike 4.0 International（CC BY-SA 4.0）提供：
+https://creativecommons.org/licenses/by-sa/4.0/
+
+再分发或改编时，请注明 OpenJLPT、Tomoshi/JMdict 来源、许可链接及所作修改，并以相同许可发布日语词库改编内容。
