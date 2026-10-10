@@ -1,7 +1,7 @@
 // 支付后端：下单、收付款通知、主动查询订单状态（一个文件）
 const crypto = require('crypto');
 const querystring = require('querystring');
-const { cors, redis, getIdentity, getLicense, sendError } = require('../lib/server');
+const { cors, redis, getUser, getLicense, sendError } = require('../lib/server');
 
 const PRICE_FEN = 3900;            // 39 元
 const FOREVER = 4102444800000;     // 永久
@@ -76,8 +76,8 @@ module.exports = async function handler(req, res) {
 
   // 1. 下单，返回二维码
   if (action === 'create' && req.method === 'POST') {
-    const user = await getIdentity(req);
-    if (!user) return sendError(res, 401, 'Session unavailable. Refresh the page and try again.');
+    const user = await getUser(req);
+    if (!user) return sendError(res, 401, 'Please sign in before payment');
     const hourKey = 'pay-create:' + user.id + ':' + Math.floor(Date.now() / 3600000);
     const creates = Number(await redis(['EVAL', CREATE_LIMIT_SCRIPT, '1', hourKey, '7200']));
     if (creates > 10) return sendError(res, 429, 'Too many payment orders. Try again later.');
@@ -145,8 +145,8 @@ module.exports = async function handler(req, res) {
   // 3. 网页轮询：先看本地记录，没付则主动问简付
   if (action === 'status') {
     if (req.method !== 'GET') return sendError(res, 405, 'Method not allowed');
-    const user = await getIdentity(req);
-    if (!user) return sendError(res, 401, 'Session unavailable');
+    const user = await getUser(req);
+    if (!user) return sendError(res, 401, 'Please sign in');
     const orderNo = String(req.query.orderId || '');
     if (!/^P[0-9a-f]{48}$/.test(orderNo)) return res.status(404).json({ paid: false, expiresAt: null });
     let order = await getOrder(orderNo);

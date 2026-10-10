@@ -247,7 +247,8 @@ footer{padding:18px clamp(12px,3.5vw,28px)}
     <span id="s-streak">连对 0</span><br>
     <span id="s-quota">今日 0/100</span>
   </div>
-  </header>
+  <button class="btn btn-dark auth-nav" id="btn-account" type="button">登录 / 注册</button>
+</header>
 
 <main class="container" style="padding-bottom:32px">
 
@@ -552,7 +553,7 @@ var WORD_DATA=await loadWordData();
 var ENGLISH_WORDS=WORD_DATA.en;
 var JAPANESE_WORDS=WORD_DATA.ja;
 var PRO_CONFIG={
-  api:"https://spanishpro.vercel.app",
+  api:"",
   tiers:[{name:"永久解锁",price:"¥39",period:"永久",desc:"无限练习，不再限次"}]};
 var DAILY_LIMIT=100;
 
@@ -575,7 +576,7 @@ var dayKey=(function(){ /* 北京时间当日，凌晨 0-6 点仍算前一天 �
   var d=new Date(Date.now()+2*3600000);
   return d.getUTCFullYear()+"-"+(d.getUTCMonth()+1)+"-"+d.getUTCDate();})();
 var store=loadStore();
-var AUTH={config:null,configLoading:true,accessToken:"",refreshToken:"",anonToken:"",userId:"",email:"",count:0,expiresAt:0,ready:false,loading:false};
+var AUTH={config:null,configLoading:true,accessToken:"",refreshToken:"",userId:"",email:"",count:0,expiresAt:0,ready:false,loading:false};
 function $(id){return document.getElementById(id)}
 function safe(id){var e=$(id);return e||null}
 function renderLanguageFlag(){
@@ -603,14 +604,16 @@ function addMistake(w){var m=mistakes();
 /* 每日配额从服务端读取；浏览器本地数据不再作为额度来源。 */
 function quotaNow(){return AUTH.count||0}
 function quotaInc(){
+  AUTH.count=Math.min(DAILY_LIMIT,Number(AUTH.count||0)+1);
+  renderStats();
   return apiFetch(PRO_CONFIG.api+"/api/usage",{method:"POST"})
     .then(function(r){if(!r.ok)throw new Error("无法保存答题次数");return r.json()})
-    .then(function(d){AUTH.count=Number(d.count)||0;AUTH.expiresAt=Number(d.expiresAt)||0;renderStats();
+    .then(function(d){AUTH.count=Math.max(AUTH.count,Number(d.count)||0);AUTH.expiresAt=Number(d.expiresAt)||0;renderStats();
       if(!isPro()&&AUTH.count>=DAILY_LIMIT)setTimeout(function(){if(!isPro()&&!safe("pay-ov"))proModal()},450);
       return d})
-    .catch(function(e){AUTH.ready=false;showAccountLabel();note("次数同步失败，请检查网络后刷新页面","no");return null});}
+    .catch(function(e){AUTH.ready=false;showAuthGate("网络暂时不可用，答题次数未能同步。请登录后重试。");return null});}
 function tryAttempt(){
-  if(!AUTH.ready){note("练习服务正在连接，请稍候再试","no");return false}
+  if(!AUTH.ready){showAuthGate("开始答题前请登录或创建账号");return false}
   if(!isPro()&&quotaNow()>=DAILY_LIMIT){if(!document.querySelector(".modal"))proModal();return false}
   return true}
 
@@ -656,7 +659,7 @@ function renderStats(){
 }
 function recordAnswer(ok){
   // 免费次数只统计完整答对的单词；错误输入只影响正确率，不扣免费次数。
-  if(ok)quotaInc();
+  if(ok&&!isPro())quotaInc();
   store.total=(store.total||0)+1;
   if(ok){store.ok=(store.ok||0)+1;store.streak=(store.streak||0)+1;
     if(store.streak>(store.best||0))store.best=store.streak;
@@ -914,33 +917,53 @@ function isPro(){return Number(AUTH.expiresAt)>Date.now()}
 function setPro(exp){AUTH.expiresAt=Number(exp)||0;renderStats()}
 function authStorage(){try{return JSON.parse(localStorage.getItem("es-auth-v1")||"{}")}catch(e){return{}}}
 function saveAuth(){try{localStorage.setItem("es-auth-v1",JSON.stringify({accessToken:AUTH.accessToken,refreshToken:AUTH.refreshToken}))}catch(e){}}
-function saveAnonSession(){try{localStorage.setItem("es-anon-session-v1",AUTH.anonToken)}catch(e){}}
 function clearAuth(){AUTH.accessToken="";AUTH.refreshToken="";AUTH.userId="";AUTH.email="";AUTH.count=0;AUTH.expiresAt=0;AUTH.ready=false;try{localStorage.removeItem("es-auth-v1")}catch(e){}}
 function showAccountLabel(){
   var el=safe("account-label"),out=safe("btn-logout"),account=safe("btn-account");
-  if(el)el.textContent=AUTH.ready?(AUTH.email?"已登录："+AUTH.email:"匿名练习 · 本浏览器"):"";
-  if(out)out.hidden=true;
-  if(account)account.hidden=true;
+  if(el)el.textContent=AUTH.ready?"已登录："+AUTH.email:"";
+  if(out)out.hidden=!AUTH.ready;
+  if(account)account.textContent=AUTH.ready?"退出登录":"登录 / 注册";
+}
+function showAuthGate(message){
+  var old=safe("auth-ov");if(old){var m=safe("auth-message");if(m)m.textContent=message||"";return}
+  var ov=document.createElement("div");ov.className="overlay";ov.id="auth-ov";ov.style.zIndex="9999";
+  ov.innerHTML='<div class="notebook" role="dialog" aria-modal="true" style="max-width:380px;width:100%"><div class="rings" aria-hidden="true"></div><div class="notepage"><h2>登录 / 注册</h2><p style="font-size:13px">登录后同步每日练习次数和永久解锁权益。</p><form id="auth-form"><label style="display:block;margin:10px 0 4px">邮箱</label><input id="auth-email" type="email" autocomplete="email" required style="width:100%;padding:10px"><label style="display:block;margin:10px 0 4px">密码</label><input id="auth-password" type="password" autocomplete="current-password" minlength="8" required style="width:100%;padding:10px"><button class="btn" id="auth-submit" type="submit" style="margin-top:12px">登录</button><button class="btn btn-dark" id="auth-toggle" type="button" style="margin:12px 0 0 8px">创建账号</button></form><p id="auth-message" role="status" style="font-size:13px;min-height:20px"></p><button class="btn btn-dark" id="auth-close" type="button">返回练习</button></div></div>';
+  document.body.appendChild(ov);
+  var form=safe("auth-form"),toggle=safe("auth-toggle"),submit=safe("auth-submit"),register=false;
+  if(toggle)toggle.addEventListener("click",function(){register=!register;submit.textContent=register?"创建账号":"登录";toggle.textContent=register?"返回登录":"创建账号";safe("auth-password").setAttribute("autocomplete",register?"new-password":"current-password")});
+  var close=safe("auth-close");close&&close.addEventListener("click",function(){ov.remove()});
+  if(form)form.addEventListener("submit",function(ev){ev.preventDefault();submit.disabled=true;authSubmit(register).finally(function(){submit.disabled=false})});
+}
+function authMessage(s){var m=safe("auth-message");if(m)m.textContent=String(s||"")}
+async function authSubmit(register){
+  try{
+    if(!AUTH.config){authMessage(AUTH.configLoading?"账户服务正在连接，请稍后再试":"账户服务暂不可用，请稍后重试");return}
+    var email=safe("auth-email").value.trim(),password=safe("auth-password").value;
+    var path=register?"signup":"login";
+    var r=await fetch(PRO_CONFIG.api+"/api/auth?action="+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email,password:password,redirectTo:location.origin})});
+    var d=await r.json();
+    if(!r.ok)throw new Error(d.msg||d.message||d.error_description||d.error||"登录失败，请检查邮箱和密码");
+    if(!d.access_token||!d.refresh_token){authMessage(register?"账号已创建。请按账户服务提示完成验证后登录。":"登录未完成，请检查邮箱和密码后重试。");return}
+    AUTH.accessToken=d.access_token;AUTH.refreshToken=d.refresh_token;saveAuth();
+    await finishAuthentication();
+  }catch(e){authMessage(e.message||"登录失败")}
 }
 async function refreshAuth(){
   if(!AUTH.refreshToken||!AUTH.config)return false;
-  var r=await fetchWithTimeout(PRO_CONFIG.api+"/api/auth?op=refresh",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({refresh_token:AUTH.refreshToken})},15000);
+  var r=await fetch(PRO_CONFIG.api+"/api/auth?action=refresh",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({refresh_token:AUTH.refreshToken})});
   if(!r.ok)return false;
   var d=await r.json();if(!d.access_token)return false;
   AUTH.accessToken=d.access_token;AUTH.refreshToken=d.refresh_token||AUTH.refreshToken;saveAuth();return true;
 }
 async function authFetch(url,options){
-  options=options||{};var headers=Object.assign({},options.headers||{});
-  if(AUTH.accessToken)headers.Authorization="Bearer "+AUTH.accessToken;
-  else if(AUTH.anonToken)headers["X-Anon-Session"]=AUTH.anonToken;
-  options.headers=headers;
-  var r=await fetchWithTimeout(url,options,15000);
-  if(r.status===401&&AUTH.accessToken&&await refreshAuth()){options.headers.Authorization="Bearer "+AUTH.accessToken;r=await fetchWithTimeout(url,options,15000)}
+  options=options||{};options.headers=Object.assign({},options.headers||{},{Authorization:"Bearer "+AUTH.accessToken});
+  var r=await fetch(url,options);
+  if(r.status===401&&await refreshAuth()){options.headers.Authorization="Bearer "+AUTH.accessToken;r=await fetch(url,options)}
   return r;
 }
-async function apiFetch(url,options){if(!AUTH.accessToken&&!AUTH.anonToken)throw new Error("正在准备练习会话，请稍后重试");return authFetch(url,options)}
+async function apiFetch(url,options){if(!AUTH.accessToken)throw new Error("请先登录");return authFetch(url,options)}
 async function finishAuthentication(){
-  var me=await authFetch(PRO_CONFIG.api+"/api/auth?op=user");
+  var me=await apiFetch(PRO_CONFIG.api+"/api/auth?action=user");
   if(!me.ok)throw new Error("登录状态已过期，请重新登录");
   var user=await me.json();AUTH.userId=user.id;AUTH.email=user.email||"";
   var r=await apiFetch(PRO_CONFIG.api+"/api/usage");if(!r.ok)throw new Error("无法加载账户额度");
@@ -950,35 +973,28 @@ async function finishAuthentication(){
 async function initializeAccount(){
   AUTH.configLoading=true;
   try{
-    var cr=await fetchWithTimeout(PRO_CONFIG.api+"/api/config",{},8000),cfg=await cr.json();
-    if(!cr.ok||!cfg.ok)throw new Error(cfg.error||"练习服务暂时不可用");
-    AUTH.config={authViaProxy:true};AUTH.configLoading=false;
+    var cr=await fetch(PRO_CONFIG.api+"/api/config"),cfg=await cr.json();
+    if(!cr.ok||!cfg.ok)throw new Error("账户服务尚未配置，请稍后再试");
+    AUTH.config={proxy:true};
+    AUTH.configLoading=false;
     var fragment=new URLSearchParams(location.hash.replace(/^#/,""));
     if(fragment.get("access_token")){AUTH.accessToken=fragment.get("access_token");AUTH.refreshToken=fragment.get("refresh_token")||"";saveAuth();history.replaceState(null,"",location.pathname+location.search)}
-    if(!AUTH.accessToken){var savedAuth=authStorage();AUTH.accessToken=savedAuth.accessToken||"";AUTH.refreshToken=savedAuth.refreshToken||""}
-    if(AUTH.accessToken){try{await finishAuthentication();return}catch(e){AUTH.accessToken="";AUTH.refreshToken="";AUTH.userId="";AUTH.email=""}}
-    var anonToken="";try{anonToken=localStorage.getItem("es-anon-session-v1")||""}catch(e){}
-    var headers={};if(anonToken)headers["X-Anon-Session"]=anonToken;
-    var sr=await fetchWithTimeout(PRO_CONFIG.api+"/api/session",{method:"POST",headers:headers},12000);
-    var sd=await sr.json();if(!sr.ok||!sd.ok||!sd.token)throw new Error(sd.error||"无法创建练习会话");
-    AUTH.anonToken=sd.token;AUTH.userId=sd.id;saveAnonSession();
-    var ur=await apiFetch(PRO_CONFIG.api+"/api/usage");var ud=await ur.json();
-    if(!ur.ok||!ud.ok)throw new Error(ud.error||"无法加载今日练习次数");
-    AUTH.count=Number(ud.count)||0;AUTH.expiresAt=Number(ud.expiresAt)||0;AUTH.ready=true;
-    showAccountLabel();renderStats();checkPending();
-  }catch(e){AUTH.configLoading=false;AUTH.ready=false;showAccountLabel();var label=safe("account-label");if(label)label.textContent="练习服务暂时无法连接，请刷新重试";note(e.message||"练习服务暂时无法连接","no")}
+    if(!AUTH.accessToken){var saved=authStorage();AUTH.accessToken=saved.accessToken||"";AUTH.refreshToken=saved.refreshToken||""}
+    if(!AUTH.accessToken){showAccountLabel();return}
+    try{await finishAuthentication()}catch(e){if(await refreshAuth())await finishAuthentication();else{clearAuth();authMessage("登录状态已过期，请重新登录")}}
+  }catch(e){AUTH.configLoading=false;showAccountLabel();var label=safe("account-label");if(label)label.textContent="账户暂时无法连接"}
 }
 function syncPro(){
   if(!AUTH.ready)return;
   apiFetch(PRO_CONFIG.api+"/api/usage").then(function(r){if(!r.ok)throw new Error("无法同步账户");return r.json()})
     .then(function(d){AUTH.count=Number(d.count)||0;AUTH.expiresAt=Number(d.expiresAt)||0;renderStats()})
-    .catch(function(){AUTH.ready=false;showAccountLabel();note("额度同步失败，请检查网络后刷新","no")});
+    .catch(function(){AUTH.ready=false;showAuthGate("账户服务暂时不可用，请重新登录后同步额度")});
 }
-async function logout(){try{if(AUTH.accessToken&&AUTH.config)await fetchWithTimeout(PRO_CONFIG.api+"/api/auth?op=logout",{method:"POST",headers:{Authorization:"Bearer "+AUTH.accessToken}},10000)}catch(e){}clearAuth();showAccountLabel();renderStats()}
+async function logout(){try{if(AUTH.accessToken&&AUTH.config)await fetch(PRO_CONFIG.api+"/api/auth?action=logout",{method:"POST",headers:{Authorization:"Bearer "+AUTH.accessToken}})}catch(e){}clearAuth();showAccountLabel();renderStats()}
 function showUnlockNotice(){
   var old=safe("unlock-ov");if(old)old.remove();
   var ov=document.createElement("section");ov.className="overlay";ov.id="unlock-ov";ov.style.zIndex="1100";
-  ov.innerHTML='<div class="notebook" role="dialog" aria-modal="true" style="max-width:380px;width:100%"><div class="rings" aria-hidden="true"></div><div class="notepage"><h2>已永久解锁</h2><p style="font-size:14px">感谢支持！此浏览器已永久解锁，练习次数不再受限。</p><button class="btn btn-olive" id="unlock-close" type="button">开始练习</button></div></div>';
+  ov.innerHTML='<div class="notebook" role="dialog" aria-modal="true" style="max-width:380px;width:100%"><div class="rings" aria-hidden="true"></div><div class="notepage"><h2>已永久解锁</h2><p style="font-size:14px">感谢支持！你的账号已成为永久会员，练习次数不再受限。</p><button class="btn btn-olive" id="unlock-close" type="button">开始练习</button></div></div>';
   document.body.appendChild(ov);var close=safe("unlock-close");close&&close.addEventListener("click",function(){ov.remove()});
 }
 /* ── 扫码付款：状态都显示在弹窗里（之前的提示条被遮住，看不到错误） ── */
@@ -1002,7 +1018,7 @@ function payBox(){
       if(!safeUrl){this.msg("支付平台返回的二维码地址无效");return}
       body.textContent="";var label=document.createElement("p");label.style.cssText="font-size:13px;margin:0 0 8px";label.textContent="用支付宝扫描下方二维码";
       var img=document.createElement("img");img.src=safeUrl;img.width=220;img.height=220;img.alt="支付二维码";img.style.cssText="background:#fff;padding:6px";
-      var hint=document.createElement("p");hint.style.cssText="font-size:13px;margin:10px 0";hint.textContent="付款后自动解锁。权益保存在当前浏览器，清除浏览器数据后无法自动恢复。";body.append(label,img,hint);
+      var hint=document.createElement("p");hint.style.cssText="font-size:13px;margin:10px 0";hint.textContent="付款后自动解锁";body.append(label,img,hint);
       timer=setInterval(function(){
         apiFetch(PRO_CONFIG.api+"/api/pay?action=status&orderId="+encodeURIComponent(orderNo))
           .then(function(r){return r.json()})
@@ -1014,7 +1030,7 @@ function payBox(){
   };
 }
 function buyPlan(){
-  if(!AUTH.ready){note("练习服务尚未连接，请刷新后再购买","no");return}
+  if(!AUTH.ready){showAuthGate("请登录后购买并绑定永久权益");return}
   var box=payBox();
   if(!PRO_CONFIG.api){box.msg("未配置后端地址（PRO_CONFIG.api）");return}
   apiFetch(PRO_CONFIG.api+"/api/pay?action=create",{method:"POST",headers:{"Content-Type":"application/json"}})
@@ -1075,7 +1091,7 @@ var spd=safe("btn-speak");spd&&spd.addEventListener("click",function(){if(tryAtt
 var skp=safe("btn-skip");skp&&skp.addEventListener("click",function(){if(tryAttempt())skipCurrentWord()});
 var prb=safe("btn-pro");prb&&prb.addEventListener("click",proModal);
 var logoutBtn=safe("btn-logout");logoutBtn&&logoutBtn.addEventListener("click",logout);
-
+var accountBtn=safe("btn-account");accountBtn&&accountBtn.addEventListener("click",function(){if(AUTH.ready)logout();else showAuthGate("请登录或创建账号")});
 var clm=safe("btn-clearmist");clm&&clm.addEventListener("click",function(){
   try{localStorage.removeItem(localKey("es-mist"))}catch(e){}
   renderMist();renderStats();});
