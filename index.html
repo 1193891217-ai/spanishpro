@@ -967,7 +967,7 @@ async function authFetch(url,options){
 }
 async function apiFetch(url,options){if(!AUTH.accessToken)throw new Error("请先登录");return authFetch(url,options)}
 async function finishAuthentication(){
-  var me=await authFetch(PRO_CONFIG.api+"/api/auth?op=user",{headers:{apikey:AUTH.config.publishableKey}});
+  var me=await authFetch(PRO_CONFIG.api+"/api/auth?op=user");
   if(!me.ok)throw new Error("登录状态已过期，请重新登录");
   var user=await me.json();AUTH.userId=user.id;AUTH.email=user.email||"";
   var r=await apiFetch(PRO_CONFIG.api+"/api/usage");if(!r.ok)throw new Error("无法加载账户额度");
