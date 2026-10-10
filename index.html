@@ -922,36 +922,6 @@ function showAccountLabel(){
   if(out)out.hidden=true;
   if(account)account.hidden=true;
 }
-function showAuthGate(message){
-  var old=safe("auth-ov");if(old){var m=safe("auth-message");if(m)m.textContent=message||"";return}
-  var ov=document.createElement("div");ov.className="overlay";ov.id="auth-ov";ov.style.zIndex="9999";
-  ov.innerHTML='<div class="notebook" role="dialog" aria-modal="true" style="max-width:380px;width:100%"><div class="rings" aria-hidden="true"></div><div class="notepage"><h2>登录 / 注册</h2><p style="font-size:13px">登录后同步每日练习次数和永久解锁权益。</p><form id="auth-form"><label style="display:block;margin:10px 0 4px">邮箱</label><input id="auth-email" type="email" autocomplete="email" required style="width:100%;padding:10px"><label style="display:block;margin:10px 0 4px">密码</label><input id="auth-password" type="password" autocomplete="current-password" minlength="8" required style="width:100%;padding:10px"><button class="btn" id="auth-submit" type="submit" style="margin-top:12px">登录</button><button class="btn btn-dark" id="auth-toggle" type="button" style="margin:12px 0 0 8px">创建账号</button></form><p id="auth-message" role="status" style="font-size:13px;min-height:20px"></p><button class="btn btn-dark" id="auth-close" type="button">返回练习</button></div></div>';
-  document.body.appendChild(ov);
-  var form=safe("auth-form"),toggle=safe("auth-toggle"),submit=safe("auth-submit"),register=false;
-  if(toggle)toggle.addEventListener("click",function(){register=!register;submit.textContent=register?"创建账号":"登录";toggle.textContent=register?"返回登录":"创建账号";safe("auth-password").setAttribute("autocomplete",register?"new-password":"current-password")});
-  var close=safe("auth-close");close&&close.addEventListener("click",function(){ov.remove()});
-  if(form)form.addEventListener("submit",function(ev){ev.preventDefault();submit.disabled=true;authSubmit(register).finally(function(){submit.disabled=false})});
-}
-async function fetchWithTimeout(url,options,timeoutMs){
-  var controller=new AbortController(),timer=setTimeout(function(){controller.abort()},timeoutMs||12000);
-  options=Object.assign({},options||{},{signal:controller.signal});
-  try{return await fetch(url,options)}catch(e){if(e&&e.name==="AbortError")throw new Error("连接超时，请检查网络后重试");throw e}finally{clearTimeout(timer)}
-}
-function authMessage(s){var m=safe("auth-message");if(m)m.textContent=String(s||"")}
-async function authSubmit(register){
-  try{
-    if(!AUTH.config){authMessage(AUTH.configLoading?"账户服务正在连接，请稍后再试":"账户服务暂不可用，请稍后重试");return}
-    var email=safe("auth-email").value.trim(),password=safe("auth-password").value;
-    var path=register?"signup":"password";
-    var query=register?"&redirect_to="+encodeURIComponent(location.origin):"";
-    var r=await fetchWithTimeout(PRO_CONFIG.api+"/api/auth?op="+path+query,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email,password:password})},15000);
-    var d=await r.json();
-    if(!r.ok)throw new Error(d.msg||d.message||d.error_description||d.error||"登录失败，请检查邮箱和密码");
-    if(!d.access_token||!d.refresh_token){authMessage("注册请求已提交。请先点击邮箱验证链接，再返回此处登录。");return}
-    AUTH.accessToken=d.access_token;AUTH.refreshToken=d.refresh_token;saveAuth();
-    await finishAuthentication();
-  }catch(e){authMessage(e.message||"登录失败")}
-}
 async function refreshAuth(){
   if(!AUTH.refreshToken||!AUTH.config)return false;
   var r=await fetchWithTimeout(PRO_CONFIG.api+"/api/auth?op=refresh",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({refresh_token:AUTH.refreshToken})},15000);
@@ -1032,7 +1002,7 @@ function payBox(){
       if(!safeUrl){this.msg("支付平台返回的二维码地址无效");return}
       body.textContent="";var label=document.createElement("p");label.style.cssText="font-size:13px;margin:0 0 8px";label.textContent="用支付宝扫描下方二维码";
       var img=document.createElement("img");img.src=safeUrl;img.width=220;img.height=220;img.alt="支付二维码";img.style.cssText="background:#fff;padding:6px";
-      var hint=document.createElement("p");hint.style.cssText="font-size:13px;margin:10px 0";hint.textContent="付款后自动解锁";body.append(label,img,hint);
+      var hint=document.createElement("p");hint.style.cssText="font-size:13px;margin:10px 0";hint.textContent="付款后自动解锁。权益保存在当前浏览器，清除浏览器数据后无法自动恢复。";body.append(label,img,hint);
       timer=setInterval(function(){
         apiFetch(PRO_CONFIG.api+"/api/pay?action=status&orderId="+encodeURIComponent(orderNo))
           .then(function(r){return r.json()})
