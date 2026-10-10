@@ -9,5 +9,5 @@ module.exports = async function handler(req, res) {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) return res.status(503).json({ ok: false, error: 'Account service is not configured' });
-  return res.json({ ok: true, supabaseUrl: url, publishableKey: key });
+  return res.json({ ok: true, authViaProxy: true });
 };
