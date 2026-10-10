@@ -25,18 +25,17 @@ Keep these values in Vercel project settings, never in `index.html` or GitHub:
 
 `JIANPAY_KEY` and `UPSTASH_REDIS_REST_TOKEN` are secrets. Do not paste them into chat or commit them. The Supabase secret/service-role key is not used by this implementation and must not be exposed in the browser.
 
-## Supabase Auth setup
+## Anonymous practice sessions
 
-1. Enable email/password sign-up and require email confirmation.
-2. Set the minimum password length to at least 8 characters.
-3. Set the site URL to `https://spanish123.kicp.fun` and add that URL as an allowed redirect URL.
-4. Configure production SMTP so confirmation messages reliably reach users.
-5. Copy the project URL and publishable key into Vercel environment variables above.
-6. Keep Supabase Auth's sign-up and password recovery rate limits enabled; add CAPTCHA before public launch if the project receives automated sign-up abuse.
+New visitors do not need to register or sign in. The frontend obtains a server-signed anonymous session and sends it to the Vercel API. Daily correct-answer usage and JianPay entitlements are stored server-side under that session. The session persists in the browser's local storage.
 
-The frontend requires sign-in before practice. Users can sign in again on another browser/device; their count and entitlement are loaded by account ID from the server. Only fully correct words increment the count. The database key changes at midnight in `Asia/Shanghai`.
+- Set `ANON_SESSION_SECRET` to a long random secret in Vercel (recommended). If it is absent, the implementation derives a separate signing key from the existing secret `JIANPAY_KEY`.
+- Keep the Supabase environment values for existing signed-in users and paid accounts that still have their old browser session. New anonymous sessions do not require a Supabase login.
+- The limit is 100 correct answers per China calendar day per browser session. Incorrect answers do not count.
+- A user who clears browser storage or switches devices receives a new anonymous session. Without an account or phone identity, a strict per-person limit and automatic cross-device recovery cannot be guaranteed. The payment dialog discloses that permanent access is tied to the current browser.
+- For person-level quotas and cross-device purchase recovery, a stable identity such as a verified phone number or account is required.
 
-After deploying the Vercel API, deploy the updated HTML. Existing local-only counts cannot be imported reliably. Purchases made before account binding may need manual account association; do not rely on old browser-local `proUntil` values as proof of payment.
+The database key changes at midnight in `Asia/Shanghai`. After deploying the Vercel API and frontend, verify the session, quota, callback, and order-status paths in production. Existing account-bound purchases remain tied to their old Supabase user IDs; a legacy signed-in browser session can still load them.
 
 ### Associate a verified legacy purchase
 
