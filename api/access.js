@@ -1,13 +1,13 @@
 'use strict';
 
-const { cors, getUser, getLicense, sendError } = require('../lib/server');
+const { cors, getIdentity, getLicense, sendError } = require('../lib/server');
 
 module.exports = async function handler(req, res) {
   cors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return sendError(res, 405, 'Method not allowed');
   try {
-    const user = await getUser(req);
+    const user = await getIdentity(req);
     if (!user) return sendError(res, 401, 'Please sign in');
     const license = await getLicense(user.id);
     return res.json({ ok: true, active: license.active, expiresAt: license.expiresAt });
